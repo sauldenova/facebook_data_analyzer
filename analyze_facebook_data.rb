@@ -39,6 +39,14 @@ def most_popular_polish_words
   end
 end
 
+def most_popular_spanish_words
+  @popular_spanish_words ||= begin
+    File.open('most_popular_spanish_words.txt').map do |line|
+      line.split(' ')[0].downcase
+    end.compact
+  end
+end
+
 def most_popular_english_words
   @popular_english_words ||= begin
     File.open('most_popular_english_words.txt').map do |line|
@@ -66,7 +74,13 @@ Dir.chdir("#{catalog}/messages") do
       friend_count: 0,
       friend_characters: 0,
       friend_words: 0,
-      total_count: 0
+      total_count: 0,
+      you_image_count: 0,
+      you_gifs_count: 0,
+      you_video_count: 0,
+      friend_image_count: 0,
+      friend_gifs_count: 0,
+      friend_video_count: 0,
     }
 
     puts "Analyzing conversation with: #{friend_name}"
@@ -92,6 +106,30 @@ Dir.chdir("#{catalog}/messages") do
 
       next unless conversation_node.name == 'p'
       paragraph = conversation_node.text.downcase
+      conversation_node.children.each do |image_node|
+        if image_node.name == 'img'
+          if image_node['src'].include? 'gifs'
+            if current_message_sender == user_name
+              friends[friend_name][:you_gifs_count] += 1
+            else
+              friends[friend_name][:friend_gifs_count] += 1
+            end
+          else
+            if current_message_sender == user_name
+              friends[friend_name][:you_image_count] += 1
+            else
+              friends[friend_name][:friend_image_count] += 1
+            end
+          end
+        elsif image_node.name == 'video'
+          if current_message_sender == user_name
+            friends[friend_name][:you_video_count] += 1
+          else
+            friends[friend_name][:friend_video_count] += 1
+          end
+        end
+      end
+
       paragraph = paragraph.delete(',').delete('.')
       paragraph_length = paragraph.length
       paragraph_words = paragraph.split(' ')
@@ -120,14 +158,17 @@ ranking = friends.sort_by { |_name, friend| friend[:total_count] }.reverse
 package = Axlsx::Package.new
 package.workbook.add_worksheet(name: 'Friends ranking') do |sheet|
   sheet.add_row ['Friends ranking']
-  sheet.add_row ['Rank', 'Friend name', 'total count', 'your messages count', 'friend messages count', 'your characters count', 'friend characters count', 'your words', 'friend words']
+  sheet.add_row ['Rank', 'Friend name', 'total count', 'your messages count', 'friend messages count', 'your characters count', 'friend characters count', 'your words', 'friend words', 'your images', 'friend images', 'your gifs', 'friend gifs', 'your videos', 'friend videos']
   rank = 1
   ranking.each do |friend_name, friend_data|
     sheet.add_row [rank, friend_name,
                    friend_data[:total_count], friend_data[:you_count],
                    friend_data[:friend_count], friend_data[:you_characters],
                    friend_data[:friend_characters], friend_data[:you_words],
-                   friend_data[:friend_words]]
+                   friend_data[:friend_words], friend_data[:you_image_count],
+                   friend_data[:friend_image_count], friend_data[:you_gifs_count],
+                   friend_data[:friend_gifs_count], friend_data[:you_video_count],
+                   friend_data[:friend_video_count]]
     rank += 1
   end
 end
@@ -212,10 +253,10 @@ package.workbook.add_worksheet(name: 'Vocabulary statistics') do |sheet|
   sheet.add_row ['Vocabulary statistics']
   sheet.add_row ["You used #{dictionary.length} unique words and #{me[:total_words]} words in total"]
 
-  most_popular_polish_words.each do |word|
+  most_popular_spanish_words.each do |word|
     dictionary.delete(word)
   end
-
+  
   most_popular_english_words.each do |word|
     dictionary.delete(word)
   end
