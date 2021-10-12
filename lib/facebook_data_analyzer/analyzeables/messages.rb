@@ -297,6 +297,10 @@ module FacebookDataAnalyzer
           my_words.delete(word)
         end
 
+        most_popular_spanish_words.each do |word|
+          my_words.delete(word)
+        end
+
         most_popular_english_words.each do |word|
           my_words.delete(word)
         end
@@ -322,6 +326,18 @@ module FacebookDataAnalyzer
                                   end
 
                                   polish_words
+                                end
+    end
+
+    def most_popular_spanish_words
+      @popular_spanish_words ||= begin
+                                  spanish_words = Set.new
+                                  File.open('most_popular_spanish_words.txt').map do |line|
+                                    spanish_word = line.split(' ')[0].downcase
+                                    spanish_words.add(spanish_word) unless spanish_word.nil?
+                                  end
+
+                                  spanish_words
                                 end
     end
 
